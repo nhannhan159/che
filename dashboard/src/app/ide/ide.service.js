@@ -20,7 +20,7 @@ class IdeSvc {
    * Default constructor that is using resource
    * @ngInject for Dependency injection
    */
-  constructor(cheAPI, $rootScope, lodash, $mdDialog, userDashboardConfig, $timeout, $websocket, $sce, proxySettings, ideLoaderSvc, $location, routeHistory, $q, $log, cheWorkspace) {
+  constructor(cheAPI, $rootScope, lodash, $mdDialog, userDashboardConfig, $timeout, $websocket, $sce, proxySettings, $location, routeHistory, $q, $log, cheWorkspace) {
     this.cheAPI = cheAPI;
     this.$rootScope = $rootScope;
     this.lodash = lodash;
@@ -30,7 +30,6 @@ class IdeSvc {
     this.userDashboardConfig = userDashboardConfig;
     this.$sce = $sce;
     this.proxySettings = proxySettings;
-    this.ideLoaderSvc = ideLoaderSvc;
     this.$location = $location;
     this.routeHistory = routeHistory;
     this.$q = $q;
@@ -65,15 +64,6 @@ class IdeSvc {
     }
   }
 
-  getStepText(stepNumber) {
-    let entry = this.steps[stepNumber];
-    if (this.currentStep >= stepNumber) {
-      return entry.inProgressText;
-    } else {
-      return entry.text;
-    }
-  }
-
   displayIDE() {
     this.$rootScope.showIDE = true;
   }
@@ -95,20 +85,17 @@ class IdeSvc {
     this.$log.error(error);
   }
 
-  startIde(workspace, noIdeLoader) {
-    this.lastWorkspace = workspace;
-
-    let defer = this.$q.defer();
-    if (!noIdeLoader) {
-      this.ideLoaderSvc.addLoader();
-    }
-
+  startIde(workspace) {
     this.currentStep = 1;
 
     let bus = this.cheAPI.getWebsocket().getBus(workspace.id);
 
     let startWorkspaceDefer = this.$q.defer();
     this.startWorkspace(bus, workspace).then(() => {
+      // update list of workspaces
+      // for new workspace to show in recent workspaces
+      this.cheAPI.cheWorkspace.fetchWorkspaces();
+
       this.cheWorkspace.fetchStatusChange(workspace.id, 'RUNNING').then(() => {
         return this.cheWorkspace.fetchWorkspaceDetails(workspace.id);
       }).then(() => {
@@ -125,7 +112,7 @@ class IdeSvc {
     });
 
     return startWorkspaceDefer.promise.then(() => {
-      if (workspace.id === this.lastWorkspace.id) {
+      if (this.lastWorkspace && workspace.id === this.lastWorkspace.id) {
         // Now that the container is started, wait for the extension server. For this, needs to get runtime details
         let websocketUrl = this.cheWorkspace.getWebsocketUrl(workspace.id);
         // try to connect
@@ -134,7 +121,7 @@ class IdeSvc {
       }
       return this.$q.resolve();
     }, (error) => {
-      if (workspace.id === this.lastWorkspace.id) {
+      if (this.lastWorkspace && workspace.id === this.lastWorkspace.id) {
         this.cleanupChannels(workspace.id);
       }
       return this.$q.reject(error);
@@ -245,7 +232,6 @@ class IdeSvc {
 
     // on success, create project
     websocketStream.onOpen(() => {
-      this.openIde(workspaceId);
       this.cleanupChannels(workspaceId, websocketStream);
     });
 
@@ -280,22 +266,20 @@ class IdeSvc {
     this.ideAction = ideAction;
   }
 
-  openLastStartedIde(skipLoader) {
-    this.openIde(this.lastWorkspace.id, skipLoader);
-  }
+  openIde(workspaceId) {
+    this.$rootScope.hideNavbar = false;
 
-  openIde(workspaceId, skipLoader) {
+    if (this.lastWorkspace && this.lastWorkspace.id === workspaceId) {
+      this.restoreIDE();
+      return;
+    }
+
     this.$timeout(() => {
       this.currentStep = 3;
     }, 0);
 
-    if (this.$rootScope.loadingIDE === false || this.preventRedirection) {
+    if (this.preventRedirection) {
       return;
-    }
-
-    if (skipLoader) {
-      this.ideLoaderSvc.addLoader();
-      this.$rootScope.hideIdeLoader = true;
     }
 
     let inDevMode = this.userDashboardConfig.developmentMode;
@@ -327,16 +311,31 @@ class IdeSvc {
     } else {
       this.$rootScope.ideIframeLink = ideUrlLink + appendUrl;
     }
-    if (!skipLoader) {
-      this.$timeout(() => {
-        this.$rootScope.hideIdeLoader = true;
-      }, 4000);
+
+    let defer = this.$q.defer();
+    if (workspace.status === 'RUNNING') {
+      defer.resolve();
+    } else {
+      this.cheWorkspace.fetchStatusChange(workspace.id, 'STARTING').then(() => {
+        defer.resolve();
+      }, (error) => {
+        defer.reject(error);
+        this.$log.error('Unable to start workspace: ', error);
+      })
     }
+    defer.promise.then(() => {
+      // update list of recent workspaces
+      this.cheWorkspace.fetchWorkspaces();
+    });
 
     this.$timeout(() => {
-      this.$rootScope.showIDE = true;
-      this.$rootScope.hideLoader = true;
-      this.$rootScope.loadingIDE = false;
+      // hide loader and show IDE
+      let re = new RegExp(workspace.config.name);
+      // check if we are still waiting for current workspace to be loaded
+      if (re.test(ideUrlLink)) {
+        //this.$rootScope.showIDE = true;
+        //this.$rootScope.hideLoader = true;
+      }
     }, 2000);
   }
 

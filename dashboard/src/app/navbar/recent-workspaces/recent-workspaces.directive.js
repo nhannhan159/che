@@ -11,26 +11,25 @@
 'use strict';
 
 /**
- * This class is handling the controller for the item in navbar allowing to redirect to the IDE
- * @author Florent Benoit
+ * @ngdoc directive
+ * @name navbar.directive:NavbarRecentWorkspaces
+ * @description This class is handling the directive of the listing recent opened workspaces in the navbar
+ * @author Oleksii Kurinnyi
  */
-class IdeListItemNavbar {
+export class NavbarRecentWorkspaces {
+
 
   /**
    * Default constructor that is using resource
    * @ngInject for Dependency injection
    */
-  constructor () {
-    this.restrict='E';
-    this.templateUrl = 'app/ide/ide-list-item-navbar/ide-list-item-navbar.html';
+  constructor() {
+    this.restrict = 'E';
+    this.templateUrl = 'app/navbar/recent-workspaces/recent-workspaces.html';
 
-
-    this.controller = 'IdeListItemNavbarCtrl';
-    this.controllerAs = 'ideListItemNavbarCtrl';
+    this.controller = 'NavbarRecentWorkspacesCtrl';
+    this.controllerAs = 'navbarRecentWorkspacesCtrl';
     this.bindToController = true;
   }
 
 }
-
-export default IdeListItemNavbar;
-

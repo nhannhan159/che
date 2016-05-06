@@ -20,18 +20,16 @@ class IdeCtrl {
    * Default constructor that is using resource
    * @ngInject for Dependency injection
    */
-  constructor(ideSvc, $routeParams, ideLoaderSvc, ideIFrameSvc, $rootScope, cheWorkspace, $timeout, $location, routeHistory) {
+  constructor(ideSvc, $routeParams, ideIFrameSvc, $rootScope, cheWorkspace, $timeout, $location, routeHistory) {
     this.ideSvc = ideSvc;
     this.ideIFrameSvc = ideIFrameSvc;
     this.$rootScope = $rootScope;
     this.cheWorkspace = cheWorkspace;
-    this.ideLoaderSvc = ideLoaderSvc;
     this.$timeout = $timeout;
     this.selectedWorkspace = null;
-    this.$rootScope.loadingIDE = true;
+    this.$rootScope.showIDE = false;
 
     $rootScope.wantTokeepLoader = true;
-    $rootScope.hideLoader = false;
 
     // search the selected workspace
     let workspace = $routeParams.workspaceName;
@@ -128,23 +126,12 @@ class IdeCtrl {
       }
     }
 
+    this.$rootScope.hideLoader = true;
+
     if (this.selectedWorkspace) {
-      if (this.ideSvc.getPreventRedirection()) {
-        this.$rootScope.hideIdeLoader = false;
-        this.ideLoaderSvc.addLoader();
-      } else if ('RUNNING' === this.selectedWorkspace.status) {
-        this.ideSvc.setPreventRedirection(false);
-        this.ideSvc.init();
-        this.ideSvc.openIde(this.selectedWorkspace.id);
-      } else if ('STOPPED' === this.selectedWorkspace.status) {
-        this.$rootScope.hideIdeLoader = false;
-        this.$rootScope.hideLoader = true;
-        this.ideSvc.init();
-        this.ideSvc.startIde(this.selectedWorkspace);
-      }
-    } else {
-      this.$rootScope.hideIdeLoader = true;
-      this.$rootScope.hideLoader = true;
+      this.ideSvc.setPreventRedirection(false);
+      this.ideSvc.init();
+      this.ideSvc.openIde(this.selectedWorkspace.id);
     }
   }
 }
