@@ -1,15 +1,18 @@
-<div tabindex="0"
-     class="navbar-dropdown">
-  <div ng-transclude
-       ng-click="navbarDropdownCtrl.toggleDropdown()"></div>
+<div class="navbar-dropdown">
+  <div ng-transclude class="navbar-dropdown-button"></div>
   <div class="navbar-dropdown-elements"
        ng-show="navbarDropdownCtrl.showDropdown">
+    <div class="navbar-dropdown-backdrop"></div>
     <ul>
       <li ng-repeat="item in navbarDropdownCtrl.dropdownItems"
-          ng-click="navbarDropdownCtrl.process(item)">
-      <span class="navbar-click-area">
-        {{item.name}}
-      </span>
+          ng-if="!item.hidden">
+        <md-button ng-click="navbarDropdownCtrl.process(item)"
+                   ng-disabled="item.disabled">
+          <span>
+            <i class="navbar-icon {{item.icon}}" area-hidden="true"></i>
+            {{item.name}}
+          </span>
+        </md-button>
       </li>
     </ul>
   </div>

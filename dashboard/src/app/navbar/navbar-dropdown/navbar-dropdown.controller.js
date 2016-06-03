@@ -21,13 +21,14 @@ export class NavbarDropdownCtrl {
    * Default constructor that is using resource
    * @ngInject for Dependency injection
    */
-  constructor($timeout, $window, $scope) {
+  constructor($timeout, $window) {
     this.$timeout = $timeout;
-    this.showDropdown = false;
     this.$window = $window;
-    this.$scope = $scope;
+
+    this.showDropdown = false;
 
     this.moveupDropdown = !angular.isUndefined(this.moveDropdownAbove);
+    this.rightClick = !angular.isUndefined(this.rightClick);
   }
 
   toggleDropdown() {
@@ -40,13 +41,13 @@ export class NavbarDropdownCtrl {
   }
 
   closeDropdown() {
-    this.$timeout(() => {
-      this.showDropdown = false;
-    }, 100);
+    this.showDropdown = false;
   }
 
   process(item) {
     console.log('>>> process: ', item);
+    this.closeDropdown();
+
     if (item.url) {
       this.redirect(item.url);
       return;
@@ -62,10 +63,6 @@ export class NavbarDropdownCtrl {
       return;
     }
     this.$window.location.href = newPath;
-  }
-
-  getVisibility() {
-    return this.showDropdown;
   }
 
 }

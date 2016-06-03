@@ -11,7 +11,23 @@
 'use strict';
 
 /**
- * Defines the super class for for all buttons
+ * @ngdoc directive
+ * @name dashboard.directive:NavbarDropdown
+ * @restrict E
+ * @element
+ *
+ * @description
+ *  `<navbar-dropdown></navbar-dropdown>` defines a dropdown menu in navbar
+ *
+ * @param {array}    navbar-dropdown-items  the list of menu items
+ * @param {boolean=} navbar-dropdown-above  the optional flag to situate menu above the button
+ * @param {boolean=} navbar-dropdown-right-click  the optional flag to activate menu by right mouse click
+ *
+ * @usage
+ *    <navbar-dropdown navbar-dropdown-items="ctrl.itemsList">
+ *      <md-button>Show menu</md-button>
+ *    </navbar-dropdown>
+ *
  * @author Oleksii Kurinnyi
  */
 export class NavbarDropdown {
@@ -35,11 +51,13 @@ export class NavbarDropdown {
     // scope values
     this.scope = {
       dropdownItems: '=navbarDropdownItems',
-      moveDropdownAbove: '@?navbarDropdownAbove'
+      moveDropdownAbove: '@?navbarDropdownAbove',
+      rightClick: '@?navbarDropdownRightClick'
     };
   }
 
   link($scope, $element, $attrs, ctrl) {
+    // set position of dropdown menu
     let elemHeight = $element.height(),
       dropdownOffset = elemHeight - 1,
       $dropdownList = $element.find('.navbar-dropdown-elements');
@@ -51,18 +69,38 @@ export class NavbarDropdown {
       }
     }
 
-    // set focus to $element
-    // if $element lose focus then dropdown will be closed
-    $scope.$watch(() => {return ctrl.showDropdown;}, (doShow) => {
-      if (doShow){
-        $element.focus();
-      } else {
-        $element.blur();
-      }
-    });
-    $element.bind('blur', () => {
-      ctrl.closeDropdown();
-    })
+    // handle click on backdrop
+    let backdropEl = $element.find('.navbar-dropdown-backdrop');
+    backdropEl.bind('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
 
+      $scope.$apply(() => {
+        ctrl.closeDropdown();
+      });
+    });
+    backdropEl.bind('contextmenu', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      $scope.$apply(() => {
+        ctrl.closeDropdown();
+      });
+    });
+
+    // handle click on button
+    let buttonEl = $element.find('.navbar-dropdown-button')
+    if (ctrl.rightClick) {
+      buttonEl.bind('contextmenu', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        ctrl.toggleDropdown();
+      })
+    } else {
+      buttonEl.bind('click', (event) => {
+        ctrl.toggleDropdown();
+      })
+    }
   }
 }
