@@ -50,7 +50,7 @@ public class DockerProcessTest {
                                      new DockerConnectionFactory(dockerConnectorConfiguration));
 
         final ContainerCreated containerCreated = docker.createContainer(new ContainerConfig().withImage("ubuntu")
-                                                                                              .withCmd("tailf", "/dev/null"),
+                                                                                              .withCmd(new String[]{"tailf", "/dev/null"}),
                                                                          null);
         container = containerCreated.getId();
         docker.startContainer(containerCreated.getId(), null);
