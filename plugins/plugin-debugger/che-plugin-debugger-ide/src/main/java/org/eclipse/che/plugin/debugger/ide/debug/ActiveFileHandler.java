@@ -12,8 +12,8 @@ package org.eclipse.che.plugin.debugger.ide.debug;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
+import org.eclipse.che.ide.api.resources.VirtualFile;
 import org.eclipse.che.api.debug.shared.model.Location;
-import org.eclipse.che.ide.api.project.tree.VirtualFile;
 
 /**
  * Responsible to open files in editor when debugger stopped at breakpoint.

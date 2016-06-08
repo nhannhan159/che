@@ -35,7 +35,7 @@ Usage:
      -m:name,   --machine:name          For Win & Mac, sets the docker-machine VM name; default=che
      -a:driver, --machine-driver:driver For Win & Mac, specifies the docker-machine driver to use; default=vbox
      -p:port,   --port:port             Port that Che server will use for HTTP requests; default=8080
-     -l:level,  --logs_level:level      Logging level in Che. Possible values are the logback logging levels; default=INFO
+     -l:level,  --logs_level:level      Logging level. Possible values are the logback logging levels; default=INFO
      -r:ip,     --remote:ip             If Che clients are not localhost, set to IP address of Che server
      -h,        --help                  Show this help
      -d,        --debug                 Use debug mode (prints command line options + app server debug)
@@ -94,7 +94,7 @@ usage () {
 error_exit () {
   echo
   echo "!!!"
-  echo "!!! ${1}"
+  echo -e "!!! ${1}"
   echo "!!!"
   echo 
   JUMP_TO_END=true
@@ -386,7 +386,7 @@ get_docker_ready () {
       OTHER_READ=$(cut -c8 <(echo $PERMS))
       OTHER_WRITE=$(cut -c9 <(echo $PERMS))
 
-      if [[ "$OWNE_RREAD" != "r" || "$OWNER_WRITE" != "w" || `
+      if [[ "$OWNER_READ" != "r" || "$OWNER_WRITE" != "w" || `
            `"$GROUP_READ" != "r" || "$GROUP_WRITE" != "w" || `
            `"$OTHER_READ" != "r" || "$OTHER_WRITE" != "w" ]]; then
         error_exit "Running 'docker' succeeded, but 'docker ps' failed. \n`
