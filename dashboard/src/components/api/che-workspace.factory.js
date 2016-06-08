@@ -406,7 +406,6 @@ export class CheWorkspace {
   }
 
   createSnapshot(workspaceId) {
-    alert(workspaceId);
     let promise = this.remoteWorkspaceAPI.createSnapshot({workspaceId : workspaceId}, {}).$promise;
     return promise;
   }
