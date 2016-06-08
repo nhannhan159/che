@@ -94,6 +94,7 @@ public class JavaDebugger implements EventsHandler, Debugger {
     private static final JavaDebuggerUtils debuggerUtil = new JavaDebuggerUtils();
 
     private final String           host;
+    private final String           projectPath;
     private final int              port;
     private final DebuggerCallback debuggerCallback;
 
@@ -127,9 +128,10 @@ public class JavaDebugger implements EventsHandler, Debugger {
      * @throws DebuggerException
      *         when connection to Java VM is not established
      */
-    JavaDebugger(String host, int port, DebuggerCallback debuggerCallback) throws DebuggerException {
+    JavaDebugger(String host, int port, String projectPath, DebuggerCallback debuggerCallback) throws DebuggerException {//todo change to source container
         this.host = host;
         this.port = port;
+        this.projectPath = projectPath;
         this.debuggerCallback = debuggerCallback;
         connect();
     }
@@ -560,7 +562,7 @@ public class JavaDebugger implements EventsHandler, Debugger {
         if (hitBreakpoint) {
             com.sun.jdi.Location jdiLocation = event.location();
 
-            Location location = debuggerUtil.getLocation(jdiLocation);
+            Location location = debuggerUtil.getLocation(jdiLocation, projectPath);
             debuggerCallback.onEvent(new SuspendEventImpl(location));
         }
 
@@ -573,7 +575,7 @@ public class JavaDebugger implements EventsHandler, Debugger {
         setCurrentThread(event.thread());
         com.sun.jdi.Location jdiLocation = event.location();
 
-        Location location = debuggerUtil.getLocation(jdiLocation);
+        Location location = debuggerUtil.getLocation(jdiLocation, projectPath);
         debuggerCallback.onEvent(new SuspendEventImpl(location));
         return false;
     }

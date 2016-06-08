@@ -19,17 +19,24 @@ import org.eclipse.che.api.debug.shared.model.Location;
 import org.eclipse.che.commons.lang.Pair;
 import org.eclipse.jdt.core.IClassFile;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.search.IJavaSearchConstants;
+import org.eclipse.jdt.core.search.IJavaSearchScope;
 import org.eclipse.jdt.core.search.SearchEngine;
 import org.eclipse.jdt.core.search.TypeNameMatch;
 import org.eclipse.jdt.core.search.TypeNameMatchRequestor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jdt.internal.core.JavaModel;
+import org.eclipse.jdt.internal.core.JavaModelManager;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.eclipse.jdt.core.search.SearchEngine.createWorkspaceScope;
 
 /**
  * Class uses for find and handle important information from the Java Model.
@@ -38,13 +45,22 @@ import java.util.List;
  */
 public class JavaDebuggerUtils {
 
-    public Location getLocation(com.sun.jdi.Location location) throws DebuggerException {
+    private static final JavaModel model = JavaModelManager.getJavaModelManager().getJavaModel();
+
+    public Location getLocation(com.sun.jdi.Location location, String projectPath) throws DebuggerException {
         String fqn = location.declaringType().name();
 
         List<IType> types;
         try {
             Pair<char[][], char[][]> fqnPair = prepareFqnToSearch(fqn);
-            types = findByFqn(fqnPair.first, fqnPair.second);
+
+            IJavaProject javaProject = model.getJavaProject(projectPath);
+            IJavaSearchScope projectScope = SearchEngine.createJavaSearchScope(new IJavaElement[]{javaProject});
+            types = findTypeByFqn(fqnPair.first, fqnPair.second, projectScope);
+
+            if (types.isEmpty()) {
+                types = findTypeByFqn(fqnPair.first, fqnPair.second, createWorkspaceScope());
+            }
         } catch (JavaModelException e) {
             throw new DebuggerException("Can't find class models by fqn: " + fqn, e);
         }
@@ -54,16 +70,16 @@ public class JavaDebuggerUtils {
         }
 
         IType type = types.get(0);//TODO we need handle few result! It's temporary solution.
+        String typeProjectPath = type.getJavaProject().getPath().toOSString();
         if (type.isBinary()) {
             IClassFile classFile = type.getClassFile();
             int libId = classFile.getAncestor(IPackageFragmentRoot.PACKAGE_FRAGMENT_ROOT).hashCode();
-            String projectPath = type.getJavaProject().getPath().toOSString();
-            return new LocationImpl(fqn, location.lineNumber(), null, true, libId, projectPath);
+            return new LocationImpl(fqn, location.lineNumber(), null, true, libId, typeProjectPath);
         } else {
             ICompilationUnit compilationUnit = type.getCompilationUnit();
-            String projectPath = type.getJavaProject().getPath().toOSString();
+            typeProjectPath = type.getJavaProject().getPath().toOSString();
             String resourcePath = compilationUnit.getPath().toOSString();
-            return new LocationImpl(fqn, location.lineNumber(), resourcePath, false, -1, projectPath);
+            return new LocationImpl(fqn, location.lineNumber(), resourcePath, false, -1, typeProjectPath);
         }
     }
 
@@ -99,14 +115,14 @@ public class JavaDebuggerUtils {
         return fqn;
     }
 
-    private List<IType> findByFqn(char[][] packages, char[][] names) throws JavaModelException {
+    private List<IType> findTypeByFqn(char[][] packages, char[][] names, IJavaSearchScope scope) throws JavaModelException {
         List<IType> result = new ArrayList<>();
 
         SearchEngine searchEngine = new SearchEngine();
 
         searchEngine.searchAllTypeNames(packages,
                                         names,
-                                        SearchEngine.createWorkspaceScope(),
+                                        scope,
                                         new TypeNameMatchRequestor() {
                                             @Override
                                             public void acceptTypeNameMatch(TypeNameMatch typeNameMatch) {
