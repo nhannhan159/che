@@ -50,7 +50,7 @@ public class StopProcessAction extends AbstractPerspectiveAction {
         OutputConsole outputConsole = consolesPanelPresenter.getContextOutputConsole();
         if (outputConsole != null && outputConsole instanceof CommandOutputConsolePresenter) {
             CommandOutputConsolePresenter commandOutputConsolePresenter = (CommandOutputConsolePresenter)outputConsole;
-            commandOutputConsolePresenter.reRunProcessButtonClicked();
+            commandOutputConsolePresenter.stopProcessButtonClicked();
         }
     }
 
