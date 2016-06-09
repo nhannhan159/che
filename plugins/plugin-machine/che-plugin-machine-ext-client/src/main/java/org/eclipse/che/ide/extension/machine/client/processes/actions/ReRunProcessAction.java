@@ -17,6 +17,7 @@ import org.eclipse.che.ide.api.action.AbstractPerspectiveAction;
 import org.eclipse.che.ide.api.action.ActionEvent;
 import org.eclipse.che.ide.api.outputconsole.OutputConsole;
 import org.eclipse.che.ide.extension.machine.client.MachineLocalizationConstant;
+import org.eclipse.che.ide.extension.machine.client.MachineResources;
 import org.eclipse.che.ide.extension.machine.client.outputspanel.console.CommandOutputConsolePresenter;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
 import org.eclipse.che.ide.extension.machine.client.processes.ProcessTreeNode;
@@ -36,12 +37,13 @@ public class ReRunProcessAction extends AbstractPerspectiveAction {
 
     @Inject
     public ReRunProcessAction(ConsolesPanelPresenter consolesPanelPresenter,
-                              MachineLocalizationConstant locale) {
+                              MachineLocalizationConstant locale,
+                              MachineResources machineResources) {
         super(singletonList(PROJECT_PERSPECTIVE_ID),
                 locale.reRunControlTitle(),
                 locale.reRunControlDescription(),
                 null,
-                null);
+                machineResources.reRunIcon());
         this.consolesPanelPresenter = consolesPanelPresenter;
     }
 

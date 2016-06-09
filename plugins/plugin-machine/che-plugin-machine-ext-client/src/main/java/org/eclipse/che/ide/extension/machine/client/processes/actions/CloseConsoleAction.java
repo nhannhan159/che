@@ -15,6 +15,7 @@ import com.google.inject.Singleton;
 import static java.util.Collections.singletonList;
 import org.eclipse.che.ide.api.action.AbstractPerspectiveAction;
 import org.eclipse.che.ide.api.action.ActionEvent;
+import org.eclipse.che.ide.api.parts.PartStackUIResources;
 import org.eclipse.che.ide.extension.machine.client.MachineLocalizationConstant;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
 import org.eclipse.che.ide.extension.machine.client.processes.ProcessTreeNode;
@@ -34,12 +35,13 @@ public class CloseConsoleAction extends AbstractPerspectiveAction {
 
     @Inject
     public CloseConsoleAction(ConsolesPanelPresenter consolesPanelPresenter,
-                              MachineLocalizationConstant locale) {
+                              MachineLocalizationConstant locale,
+                              PartStackUIResources partStackUIResources) {
         super(singletonList(PROJECT_PERSPECTIVE_ID),
                 locale.closeControlTitle(),
                 locale.closeControlDescription(),
                 null,
-                null);
+                partStackUIResources.closeIcon());
         this.consolesPanelPresenter = consolesPanelPresenter;
     }
 
