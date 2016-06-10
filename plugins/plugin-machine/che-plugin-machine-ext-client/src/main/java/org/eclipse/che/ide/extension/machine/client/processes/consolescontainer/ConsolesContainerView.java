@@ -36,7 +36,7 @@ public interface ConsolesContainerView extends View<ConsolesContainerView.Action
     void setVisible(boolean visible);
 
     SimplePanel getLeftContainer();
-    SimplePanel getRighContainer();
+    SimplePanel getRightContainer();
 
 
     interface ActionDelegate extends BaseActionDelegate {

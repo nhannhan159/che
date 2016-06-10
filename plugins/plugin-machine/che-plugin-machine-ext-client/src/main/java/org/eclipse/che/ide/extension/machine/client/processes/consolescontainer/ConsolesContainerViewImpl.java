@@ -10,6 +10,7 @@
  *******************************************************************************/
 package org.eclipse.che.ide.extension.machine.client.processes.consolescontainer;
 
+import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.dom.client.DivElement;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
@@ -28,6 +29,7 @@ import org.eclipse.che.ide.api.parts.PartStackUIResources;
 import org.eclipse.che.ide.api.parts.base.BaseView;
 import org.eclipse.che.ide.api.theme.Style;
 import org.eclipse.che.ide.extension.machine.client.MachineResources;
+import org.eclipse.che.ide.util.loging.Log;
 
 /**
  * Implementation of {@link ConsolesContainerView}.
@@ -125,11 +127,30 @@ public class ConsolesContainerViewImpl extends BaseView<ConsolesContainerView.Ac
 
     @Override
     public SimplePanel getLeftContainer() {
+
+        Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+            @Override
+            public void execute() {
+                int width = splitLayoutPanel.getOffsetWidth() / 2;
+                splitLayoutPanel.setWidgetMinSize(leftPanel, width);
+                Log.error(getClass(), "== width " + width);
+//                splitLayoutPanel.getCgetWidgetContainerElement(leftPanel).getStyle().setWidth(width,
+//                                                                                          com.google.gwt.dom.client.Style.Unit.PX);
+            }
+        });
         return leftPanel;
     }
 
     @Override
-    public SimplePanel getRighContainer() {
+    public SimplePanel getRightContainer() {
+//        Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+//            @Override
+//            public void execute() {
+//                int width = splitLayoutPanel.getOffsetWidth()/2;
+//                Log.error(getClass(), "== width " + width);
+//                rightPanel.setWidth(String.valueOf(width) + "px");
+//            }
+//        });
         return rightPanel;
     }
 

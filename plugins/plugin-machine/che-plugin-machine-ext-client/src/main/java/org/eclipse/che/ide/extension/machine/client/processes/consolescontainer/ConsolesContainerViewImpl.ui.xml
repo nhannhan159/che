@@ -16,10 +16,10 @@
     <ui:with field="machineResources" type="org.eclipse.che.ide.extension.machine.client.MachineResources"/>
 
     <g:SplitLayoutPanel width="100%" height="100%" ui:field="splitLayoutPanel" debugId="consolesContainer">
-        <g:west size="585">
+        <g:west size="100">
             <g:SimplePanel addStyleNames="{machineResources.getCss.processNavigation}" ui:field="leftPanel" debugId="leftpanel"/>
         </g:west>
-        <g:center size="585">
+        <g:center>
             <g:SimplePanel addStyleNames="{machineResources.getCss.processNavigation}" ui:field="rightPanel" debugId="rightpanel"/>
         </g:center>
     </g:SplitLayoutPanel>

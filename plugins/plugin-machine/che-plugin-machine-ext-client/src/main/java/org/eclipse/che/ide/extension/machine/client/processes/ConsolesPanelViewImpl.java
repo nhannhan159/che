@@ -29,11 +29,9 @@ import com.google.gwt.user.client.ui.RequiresResize;
 import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.ide.api.parts.PartStackUIResources;
-import org.eclipse.che.ide.api.parts.base.BaseView;
 import org.eclipse.che.ide.api.theme.Style;
 import org.eclipse.che.ide.extension.machine.client.MachineResources;
 import org.eclipse.che.ide.ui.tree.SelectionModel;

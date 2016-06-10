@@ -171,6 +171,7 @@ public class TerminalPresenter implements TabPresenter, TerminalView.ActionDeleg
                 socket.setOnMessageHandler(new MessageReceivedHandler() {
                     @Override
                     public void onMessageReceived(MessageReceivedEvent event) {
+                        setFocus();
                         String message = event.getMessage();
 
                         terminal.write(message);
@@ -246,8 +247,10 @@ public class TerminalPresenter implements TabPresenter, TerminalView.ActionDeleg
     /** Set focus on terminal */
     public void setFocus() {
         if (!isTerminalConnected) {
+            Log.error(getClass(), "!isTerminalConnected");
             return;
         }
+        Log.error(getClass(), "=== before set focus ");
         terminal.focus();
     }
 

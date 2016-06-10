@@ -68,7 +68,6 @@ public class NewTerminalActionTest {
 
         verify(appContext).getDevMachine();
         verify(consolesPanelPresenter).onAddTerminal(eq(MACHINE_ID));
-        verify(workspaceAgent).setActivePart(eq(consolesPanelPresenter));
     }
 
     @Test
@@ -89,6 +88,5 @@ public class NewTerminalActionTest {
         verify(actionEvent.getPresentation()).setEnabled(eq(false));
 
         verify(consolesPanelPresenter, never()).onAddTerminal(eq(MACHINE_ID));
-        verify(workspaceAgent, never()).setActivePart(eq(consolesPanelPresenter));
     }
 }

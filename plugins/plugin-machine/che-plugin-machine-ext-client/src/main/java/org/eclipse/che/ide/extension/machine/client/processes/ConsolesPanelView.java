@@ -85,7 +85,7 @@ public interface ConsolesPanelView extends View<ConsolesPanelView.ActionDelegate
      */
     void setStopButtonVisibility(String nodeId, boolean visible);
 
-    interface ActionDelegate extends BaseActionDelegate {
+    interface ActionDelegate {
 
         /**
          * Will be called when user clicks 'Add new terminal' button

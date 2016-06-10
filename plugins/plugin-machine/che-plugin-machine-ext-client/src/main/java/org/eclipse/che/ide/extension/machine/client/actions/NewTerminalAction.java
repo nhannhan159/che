@@ -33,13 +33,11 @@ public class NewTerminalAction extends AbstractPerspectiveAction {
 
     private final ConsolesPanelPresenter consolesPanelPresenter;
     private final AppContext             appContext;
-    private final WorkspaceAgent         workspaceAgent;
 
     @Inject
     public NewTerminalAction(AppContext appContext,
                              MachineLocalizationConstant locale,
-                             ConsolesPanelPresenter consolesPanelPresenter,
-                             WorkspaceAgent workspaceAgent) {
+                             ConsolesPanelPresenter consolesPanelPresenter) {
         super(Collections.singletonList(PROJECT_PERSPECTIVE_ID),
               locale.newTerminalTitle(),
               locale.newTerminalDescription(),
@@ -47,7 +45,6 @@ public class NewTerminalAction extends AbstractPerspectiveAction {
 
         this.consolesPanelPresenter = consolesPanelPresenter;
         this.appContext = appContext;
-        this.workspaceAgent = workspaceAgent;
     }
 
     /** {@inheritDoc} */
@@ -60,6 +57,5 @@ public class NewTerminalAction extends AbstractPerspectiveAction {
     @Override
     public void actionPerformed(@NotNull ActionEvent event) {
         consolesPanelPresenter.onAddTerminal(appContext.getDevMachine().getId());
-        workspaceAgent.setActivePart(consolesPanelPresenter);
     }
 }

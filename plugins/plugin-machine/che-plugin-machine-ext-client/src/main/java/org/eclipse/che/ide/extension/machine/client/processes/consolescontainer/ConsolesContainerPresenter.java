@@ -22,8 +22,6 @@ import org.eclipse.che.ide.extension.machine.client.MachineLocalizationConstant;
 import org.eclipse.che.ide.extension.machine.client.MachineResources;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
 import org.eclipse.che.ide.extension.machine.client.processes.TerminalssPanelPresenter;
-import org.eclipse.che.ide.extension.machine.client.terminals.TerminalsPanelPresenter;
-import org.eclipse.che.ide.util.loging.Log;
 import org.vectomatic.dom.svg.ui.SVGResource;
 
 import javax.validation.constraints.NotNull;
@@ -58,6 +56,8 @@ public class ConsolesContainerPresenter extends BasePresenter implements Console
 
         this.view.setDelegate(this);
         this.view.setTitle(localizationConstant.viewConsolesTitle());
+        consolesPanelPresenter.setParent(this);
+        terminalsPanelPresenter.setParent(this);
     }
 
     @Override
@@ -89,10 +89,8 @@ public class ConsolesContainerPresenter extends BasePresenter implements Console
 
     @Override
     public void go(AcceptsOneWidget container) {
-        Log.error(getClass(), "=== cons " + consolesPanelPresenter.hashCode());
-        Log.error(getClass(), "=== term " + terminalsPanelPresenter.hashCode());
         consolesPanelPresenter.go(view.getLeftContainer());
-        terminalsPanelPresenter.go(view.getRighContainer());
+        terminalsPanelPresenter.go(view.getRightContainer());
         container.setWidget(view);
     }
 
