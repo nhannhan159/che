@@ -23,7 +23,7 @@ import java.util.Objects;
  */
 public class ServiceImpl implements Service {
     private String              image;
-    private BuildConfigImpl     buildConfig;
+    private BuildConfigImpl     build;
     private List<String>        entrypoint;
     private List<String>        command;
     private Map<String, String> environment;
@@ -42,7 +42,7 @@ public class ServiceImpl implements Service {
     public ServiceImpl(Service service) {
         image = service.getImage();
         if (service.getBuild() != null) {
-            buildConfig = new BuildConfigImpl(service.getBuild());
+            build = new BuildConfigImpl(service.getBuild());
         }
         entrypoint = service.getEntrypoint();
         command = service.getCommand();
@@ -69,11 +69,11 @@ public class ServiceImpl implements Service {
 
     @Override
     public BuildConfigImpl getBuild() {
-        return buildConfig;
+        return build;
     }
 
     public void setBuild(BuildConfigImpl buildConfig) {
-        this.buildConfig = buildConfig;
+        this.build = buildConfig;
     }
 
     @Override
@@ -220,7 +220,7 @@ public class ServiceImpl implements Service {
         if (!(o instanceof ServiceImpl)) return false;
         ServiceImpl service = (ServiceImpl)o;
         return Objects.equals(image, service.image) &&
-               Objects.equals(buildConfig, service.buildConfig) &&
+               Objects.equals(build, service.build) &&
                Objects.equals(entrypoint, service.entrypoint) &&
                Objects.equals(command, service.command) &&
                Objects.equals(environment, service.environment) &&
@@ -238,7 +238,7 @@ public class ServiceImpl implements Service {
     @Override
     public int hashCode() {
         return Objects
-                .hash(image, buildConfig, entrypoint, command, environment, dependsOn, containerName, links, labels, expose, ports,
+                .hash(image, build, entrypoint, command, environment, dependsOn, containerName, links, labels, expose, ports,
                       volumesFrom,
                       volumes, memLimit);
     }
@@ -247,7 +247,7 @@ public class ServiceImpl implements Service {
     public String toString() {
         return "ServiceImpl{" +
                "image='" + image + '\'' +
-               ", buildConfig=" + buildConfig +
+               ", build=" + build +
                ", entrypoint=" + entrypoint +
                ", command=" + command +
                ", environment=" + environment +
