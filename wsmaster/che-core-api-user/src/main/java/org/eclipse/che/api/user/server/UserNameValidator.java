@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.api.user.server;
 
+import org.eclipse.che.commons.lang.NameGenerator;
+
 import java.util.regex.Pattern;
 
 /**
@@ -40,6 +42,7 @@ public class UserNameValidator {
      * @return username without illegal characters
      */
     public static String normalizeUserName(String name) {
-        return ILLEGAL_USERNAME_CHARACTERS.matcher(name).replaceAll("");
+        String normalized = ILLEGAL_USERNAME_CHARACTERS.matcher(name).replaceAll("");
+        return normalized.isEmpty() ? NameGenerator.generate("username", 4) : normalized;
     }
 }

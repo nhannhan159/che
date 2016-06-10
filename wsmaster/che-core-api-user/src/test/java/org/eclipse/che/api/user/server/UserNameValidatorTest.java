@@ -15,8 +15,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import javax.validation.constraints.AssertTrue;
+
 import static org.eclipse.che.api.user.server.UserNameValidator.isValidUserName;
 import static org.eclipse.che.api.user.server.UserNameValidator.normalizeUserName;
+import static org.testng.AssertJUnit.assertTrue;
 
 /**
  * @author Mihail Kuznyetsov
@@ -66,5 +69,10 @@ public class UserNameValidatorTest {
                                {"te_st", false},
                                {"te#st", false}
         };
+    }
+
+    @Test
+    public void testCompletelyIllegalUsername() {
+        assertTrue(normalizeUserName("測試").startsWith("username"));
     }
 }
