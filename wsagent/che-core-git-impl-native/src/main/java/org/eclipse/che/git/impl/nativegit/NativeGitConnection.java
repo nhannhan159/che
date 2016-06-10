@@ -230,8 +230,8 @@ public class NativeGitConnection implements GitConnection {
     }
 
     @Override
-    public void branchDelete(BranchDeleteRequest request) throws GitException, UnauthorizedException {
-        String branchName = getBranchRef(request.getName());
+    public void branchDelete(String name, boolean force) throws GitException, UnauthorizedException {
+        String branchName = getBranchRef(name);
         String remoteName = null;
         String remoteUri = null;
 
@@ -245,7 +245,7 @@ public class NativeGitConnection implements GitConnection {
 
         branchDeleteCommand.setBranchName(branchName)
                            .setRemote(remoteName)
-                           .setDeleteFullyMerged(request.isForce())
+                           .setDeleteFullyMerged(force)
                            .setRemoteUri(remoteUri);
 
         executeRemoteCommand(branchDeleteCommand);
@@ -274,17 +274,17 @@ public class NativeGitConnection implements GitConnection {
     }
 
     @Override
-    public List<Branch> branchList(BranchListRequest request) throws GitException {
-        String listMode = request.getListMode();
+    public List<Branch> branchList(String litMode) throws GitException {
+        String listMode = litMode;
         if (listMode != null
             && !(listMode.equals(BranchListRequest.LIST_ALL) || listMode.equals(BranchListRequest.LIST_REMOTE))) {
             throw new IllegalArgumentException("Unsupported list mode '" + listMode + "'. Must be either 'a' or 'r'. ");
         }
         List<Branch> branches;
         BranchListCommand branchListCommand = nativeGit.createBranchListCommand();
-        if (request.getListMode() == null) {
+        if (litMode == null) {
             branches = branchListCommand.execute();
-        } else if (request.getListMode().equals(BranchListRequest.LIST_ALL)) {
+        } else if (litMode.equals(BranchListRequest.LIST_ALL)) {
             branches = branchListCommand.execute();
             branches.addAll(branchListCommand.setShowRemotes(true).execute());
         } else {

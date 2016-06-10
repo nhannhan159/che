@@ -78,7 +78,7 @@ public class BranchDeleteTest {
                 )
         ).isEmpty());
         //when
-        connection.branchDelete(newDto(BranchDeleteRequest.class).withName("newbranch").withForce(false));
+        connection.branchDelete("newbranch", false);
         //then
         assertTrue(Sets.symmetricDifference(
                 Sets.newHashSet(
@@ -105,7 +105,7 @@ public class BranchDeleteTest {
         connection.checkout(newDto(CheckoutRequest.class).withName("master"));
 
         //when
-        connection.branchDelete(newDto(BranchDeleteRequest.class).withName("newbranch").withForce(true));
+        connection.branchDelete("newbranch", true);
 
         //then
         assertTrue(Sets.symmetricDifference(
@@ -134,6 +134,6 @@ public class BranchDeleteTest {
         connection.commit(newDto(CommitRequest.class).withMessage("second commit"));
         connection.checkout(newDto(CheckoutRequest.class).withName("master"));
 
-        connection.branchDelete(newDto(BranchDeleteRequest.class).withName("newbranch").withForce(false));
+        connection.branchDelete("newbranch", false);
     }
 }

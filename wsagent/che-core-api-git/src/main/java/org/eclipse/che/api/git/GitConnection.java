@@ -13,6 +13,11 @@ package org.eclipse.che.api.git;
 import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.UnauthorizedException;
 import org.eclipse.che.api.core.util.LineConsumerFactory;
+import org.eclipse.che.api.git.params.AddParams;
+import org.eclipse.che.api.git.params.CheckoutParams;
+import org.eclipse.che.api.git.params.CloneParams;
+import org.eclipse.che.api.git.params.CommitParams;
+import org.eclipse.che.api.git.params.DiffParams;
 import org.eclipse.che.api.git.shared.AddRequest;
 import org.eclipse.che.api.git.shared.Branch;
 import org.eclipse.che.api.git.shared.CheckoutRequest;
@@ -54,10 +59,12 @@ import org.eclipse.che.api.git.shared.TagCreateRequest;
 import org.eclipse.che.api.git.shared.TagDeleteRequest;
 import org.eclipse.che.api.git.shared.TagListRequest;
 
+import javax.ws.rs.QueryParam;
 import java.io.Closeable;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Connection to Git repository.
@@ -70,24 +77,24 @@ public interface GitConnection extends Closeable {
     /**
      * Add content of working tree to Git index. This action prepares content to next commit.
      *
-     * @param request
-     *         add request
+     * @param params
+     *         add params
      * @throws GitException
      *         if any error occurs when add files to the index
      * @see AddRequest
      */
-    void add(AddRequest request) throws GitException;
+    void add(AddParams params) throws GitException;
 
     /**
      * Checkout a branch / file to the working tree.
      *
-     * @param request
-     *         checkout request
+     * @param params
+     *         checkout params
      * @throws GitException
      *         if any error occurs when checkout
      * @see CheckoutRequest
      */
-    void checkout(CheckoutRequest request) throws GitException;
+    void checkout(CheckoutParams params) throws GitException;
 
     /**
      * Perform clone with sparse-checkout to specified directory.
@@ -119,13 +126,14 @@ public interface GitConnection extends Closeable {
     /**
      * Delete branch.
      *
-     * @param request
-     *         delete branch request
+     * @param name
+     *         name of the branch to delete
+     * @param force
+     *          <code>true</code> if need to delete with force
      * @throws GitException
-     *         if any error occurs when delete branch
-     * @see BranchDeleteRequest
+     *         if any error occurs when deleting branch
      */
-    void branchDelete(BranchDeleteRequest request) throws GitException, UnauthorizedException;
+    void branchDelete(String name, boolean force) throws GitException, UnauthorizedException;
 
     /**
      * Rename branch.
@@ -142,16 +150,16 @@ public interface GitConnection extends Closeable {
     /**
      * List branches.
      *
-     * @param request
-     *         list branches request
-     * @return list of branch
+     * @param listMode
+     *         specifies mode of listing branches
+     * @return list of branches
      * @throws GitException
      *         if any error occurs
      * @throws IllegalArgumentException
-     *         if {@link BranchListRequest#getListMode()} returns not <code>null</code> or 'a' or 'r'
+     *         if {@param listMode} is <code>null</code> or not 'a' or 'r'
      * @see BranchListRequest
      */
-    List<Branch> branchList(BranchListRequest request) throws GitException;
+    List<Branch> branchList(String listMode) throws GitException;
 
     /**
      * Show information about files in the index and the working tree
@@ -167,21 +175,21 @@ public interface GitConnection extends Closeable {
     /**
      * Clone repository.
      *
-     * @param request
-     *         clone request
+     * @param params
+     *         clone params
      * @throws URISyntaxException
      *         if {@link CloneRequest#getRemoteUri()} return invalid value
      * @throws GitException
      *         if any other error occurs
      * @see CloneRequest
      */
-    void clone(CloneRequest request) throws URISyntaxException, ServerException, UnauthorizedException;
+    void clone(CloneParams params) throws URISyntaxException, ServerException, UnauthorizedException;
 
     /**
      * Commit current state of index in new commit.
      *
-     * @param request
-     *         commit request
+     * @param params
+     *         commit params
      * @return new commit
      * @throws GitException
      *         if any error occurs
@@ -189,20 +197,20 @@ public interface GitConnection extends Closeable {
      *         if {@link CommitRequest#getMessage()} returns <code>null</code>
      * @see CommitRequest
      */
-    Revision commit(CommitRequest request) throws GitException;
+    Revision commit(CommitParams params) throws GitException;
 
     /**
      * Show diff between commits.
      *
-     * @param request
-     *         diff request
+     * @param params
+     *         diff params
      * @return diff page. Diff info can be serialized to stream by using method {@link DiffPage#writeTo(java.io.OutputStream)}
      * @throws GitException
      *         if any error occurs
      * @see DiffPage
      * @see DiffRequest
      */
-    DiffPage diff(DiffRequest request) throws GitException;
+    DiffPage diff(DiffParams params) throws GitException;
 
     /**
      * Show content of the file from specified revision or branch.
@@ -215,7 +223,7 @@ public interface GitConnection extends Closeable {
      * @see ShowFileContentRequest
      * @see ShowFileContentResponse
      */
-    ShowFileContentResponse showFileContent(ShowFileContentRequest request) throws GitException;
+    ShowFileContentResponse showFileContent(String file, String version) throws GitException;
 
     /**
      * Fetch data from remote repository.

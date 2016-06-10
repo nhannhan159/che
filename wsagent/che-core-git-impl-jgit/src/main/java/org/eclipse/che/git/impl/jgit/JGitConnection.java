@@ -32,6 +32,11 @@ import org.eclipse.che.api.git.GitUrlUtils;
 import org.eclipse.che.api.git.GitUserResolver;
 import org.eclipse.che.api.git.LogPage;
 import org.eclipse.che.api.git.UserCredential;
+import org.eclipse.che.api.git.params.AddParams;
+import org.eclipse.che.api.git.params.CheckoutParams;
+import org.eclipse.che.api.git.params.CloneParams;
+import org.eclipse.che.api.git.params.CommitParams;
+import org.eclipse.che.api.git.params.DiffParams;
 import org.eclipse.che.api.git.shared.AddRequest;
 import org.eclipse.che.api.git.shared.Branch;
 import org.eclipse.che.api.git.shared.BranchCreateRequest;
@@ -166,6 +171,8 @@ import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_LOCAL;
+import static org.eclipse.che.api.git.shared.BranchListRequest.LIST_REMOTE;
 import static org.eclipse.che.dto.server.DtoFactory.newDto;
 
 /**
@@ -240,12 +247,12 @@ class JGitConnection implements GitConnection {
     }
 
     @Override
-    public void add(AddRequest request) throws GitException {
-        add(request, request.isUpdate());
+    public void add(AddParams params) throws GitException {
+        add(params, params.isUpdate());
 
         // "all" option, when update is false, should run git add with both update true and update false
-        if ((!request.isUpdate()) && request.getAttributes().containsKey(ADD_ALL_OPTION)) {
-            add(request, true);
+        if ((!params.isUpdate()) && params.getAttributes().containsKey(ADD_ALL_OPTION)) {
+            add(params, true);
         }
     }
 
@@ -254,10 +261,10 @@ class JGitConnection implements GitConnection {
      * as the value for the "update" parameter instead of the value in the
      * AddRequest.
      */
-    private void add(AddRequest request, boolean isUpdate) throws GitException {
+    private void add(AddParams params , boolean isUpdate) throws GitException {
         AddCommand addCommand = getGit().add().setUpdate(isUpdate);
 
-        List<String> filePatterns = request.getFilepattern();
+        List<String> filePatterns = params.getFilepattern();
         if (filePatterns.isEmpty()) {
             filePatterns = AddRequest.DEFAULT_PATTERN;
         }
@@ -271,18 +278,18 @@ class JGitConnection implements GitConnection {
     }
 
     @Override
-    public void checkout(CheckoutRequest request) throws GitException {
+    public void checkout(CheckoutParams params) throws GitException {
         CheckoutCommand checkoutCommand = getGit().checkout();
-        String startPoint = request.getStartPoint();
-        String name = request.getName();
-        String trackBranch = request.getTrackBranch();
+        String startPoint = params.getStartPoint();
+        String name = params.getName();
+        String trackBranch = params.getTrackBranch();
 
         // checkout files?
-        List<String> files = request.getFiles();
+        List<String> files = params.getFiles();
         boolean shouldCheckoutToFile = name != null && new File(getWorkingDir(), name).exists();
         if (shouldCheckoutToFile || !files.isEmpty()) {
             if (shouldCheckoutToFile) {
-                checkoutCommand.addPath(request.getName());
+                checkoutCommand.addPath(params.getName());
             } else {
                 files.forEach(checkoutCommand::addPath);
             }
@@ -291,26 +298,24 @@ class JGitConnection implements GitConnection {
             if (startPoint != null && trackBranch != null) {
                 throw new GitException("Start point and track branch can not be used together.");
             }
-            if (request.isCreateNew() && name == null) {
+            if (params.isCreateNew() && name == null) {
                 throw new GitException("Branch name must be set when createNew equals to true.");
             }
             if (startPoint != null) {
                 checkoutCommand.setStartPoint(startPoint);
             }
-            if (request.isCreateNew()) {
+            if (params.isCreateNew()) {
                 checkoutCommand.setCreateBranch(true);
                 checkoutCommand.setName(name);
             } else if (name != null) {
                 checkoutCommand.setName(name);
-                List<String> localBranches =
-                        branchList(newDto(BranchListRequest.class).withListMode(BranchListRequest.LIST_LOCAL)).stream()
-                                                                                                              .map(Branch::getDisplayName)
-                                                                                                              .collect(Collectors.toList());
+                List<String> localBranches = branchList(LIST_LOCAL).stream()
+                                                                   .map(Branch::getDisplayName)
+                                                                   .collect(Collectors.toList());
                 if (!localBranches.contains(name)) {
-                    Optional<Branch> remoteBranch = branchList(newDto(BranchListRequest.class).withListMode(BranchListRequest.LIST_REMOTE))
-                            .stream()
-                            .filter(branch -> branch.getName().contains(name))
-                            .findFirst();
+                    Optional<Branch> remoteBranch = branchList(LIST_REMOTE).stream()
+                                                                           .filter(branch -> branch.getName().contains(name))
+                                                                           .findFirst();
                     if (remoteBranch.isPresent()) {
                         checkoutCommand.setCreateBranch(true);
                         checkoutCommand.setStartPoint(remoteBranch.get().getName());
@@ -357,11 +362,11 @@ class JGitConnection implements GitConnection {
     }
 
     @Override
-    public void branchDelete(BranchDeleteRequest request) throws GitException {
+    public void branchDelete(String name, boolean force) throws GitException {
         try {
             getGit().branchDelete()
-                    .setBranchNames(request.getName())
-                    .setForce(request.isForce())
+                    .setBranchNames(name)
+                    .setForce(force)
                     .call();
         } catch (GitAPIException exception) {
             throw new GitException(exception.getMessage(), exception);
@@ -381,16 +386,15 @@ class JGitConnection implements GitConnection {
     }
 
     @Override
-    public List<Branch> branchList(BranchListRequest request) throws GitException {
-        String listMode = request.getListMode();
-        if (listMode != null && !BranchListRequest.LIST_ALL.equals(listMode) && !BranchListRequest.LIST_REMOTE.equals(listMode)) {
+    public List<Branch> branchList(String listMode) throws GitException {
+        if (listMode != null && !BranchListRequest.LIST_ALL.equals(listMode) && !LIST_REMOTE.equals(listMode)) {
             throw new IllegalArgumentException(String.format(ERROR_UNSUPPORTED_LIST_MODE, listMode));
         }
 
         ListBranchCommand listBranchCommand = getGit().branchList();
         if (BranchListRequest.LIST_ALL.equals(listMode)) {
             listBranchCommand.setListMode(ListMode.ALL);
-        } else if (BranchListRequest.LIST_REMOTE.equals(listMode)) {
+        } else if (LIST_REMOTE.equals(listMode)) {
             listBranchCommand.setListMode(ListMode.REMOTE);
         }
         List<Ref> refs;
@@ -430,30 +434,30 @@ class JGitConnection implements GitConnection {
         return branches;
     }
 
-    public void clone(CloneRequest request) throws GitException, UnauthorizedException {
+    public void clone(CloneParams params) throws GitException, UnauthorizedException {
         String remoteUri;
         boolean removeIfFailed = false;
         try {
-            if (request.getRemoteName() == null) {
-                request.setRemoteName(Constants.DEFAULT_REMOTE_NAME);
+            if (params.getRemoteName() == null) {
+                params.setRemoteName(Constants.DEFAULT_REMOTE_NAME);
             }
-            if (request.getWorkingDir() == null) {
-                request.setWorkingDir(repository.getWorkTree().getCanonicalPath());
+            if (params.getWorkingDir() == null) {
+                params.setWorkingDir(repository.getWorkTree().getCanonicalPath());
             }
 
             // If clone fails and the .git folder didn't exist we want to remove it.
             // We have to do this here because the clone command doesn't revert its own changes in case of failure.
             removeIfFailed = !repository.getDirectory().exists();
 
-            remoteUri = request.getRemoteUri();
+            remoteUri = params.getRemoteUri();
             CloneCommand cloneCommand = Git.cloneRepository()
-                                           .setDirectory(new File(request.getWorkingDir()))
-                                           .setRemote(request.getRemoteName())
+                                           .setDirectory(new File(params.getWorkingDir()))
+                                           .setRemote(params.getRemoteName())
                                            .setURI(remoteUri);
-            if (request.getBranchesToFetch().isEmpty()) {
+            if (params.getBranchesToFetch().isEmpty()) {
                 cloneCommand.setCloneAllBranches(true);
             } else {
-                cloneCommand.setBranchesToClone(request.getBranchesToFetch());
+                cloneCommand.setBranchesToClone(params.getBranchesToFetch());
             }
 
             executeRemoteCommand(remoteUri, cloneCommand);
@@ -475,9 +479,9 @@ class JGitConnection implements GitConnection {
     }
 
     @Override
-    public Revision commit(CommitRequest request) throws GitException {
+    public Revision commit(CommitParams params) throws GitException {
         try {
-            String message = request.getMessage();
+            String message = params.getMessage();
             GitUser committer = getUser();
             if (message == null) {
                 throw new GitException("Message wasn't set");
@@ -496,7 +500,7 @@ class JGitConnection implements GitConnection {
                 return rev;
             }
 
-            if (request.isAmend() && !repository.getRepositoryState().canAmend()) {
+            if (params.isAmend() && !repository.getRepositoryState().canAmend()) {
                 Revision rev = newDto(Revision.class);
                 rev.setMessage(String.format(MESSAGE_AMEND_NOT_POSSIBLE, repository.getRepositoryState().getDescription()));
                 return rev;
@@ -505,8 +509,8 @@ class JGitConnection implements GitConnection {
             CommitCommand commitCommand = getGit().commit()
                                                   .setCommitter(committerName, committerEmail).setAuthor(committerName, committerEmail)
                                                   .setMessage(message)
-                                                  .setAll(request.isAll())
-                                                  .setAmend(request.isAmend());
+                                                  .setAll(params.isAll())
+                                                  .setAmend(params.isAmend());
 
             // Check if repository is configured with Gerrit Support
             String gerritSupportConfigValue = repository.getConfig().getString(
@@ -526,8 +530,8 @@ class JGitConnection implements GitConnection {
     }
 
     @Override
-    public DiffPage diff(DiffRequest request) throws GitException {
-        return new JGitDiffPage(request, repository);
+    public DiffPage diff(DiffParams params) throws GitException {
+        return new JGitDiffPage(params, repository);
     }
 
     @Override
@@ -536,11 +540,11 @@ class JGitConnection implements GitConnection {
     }
 
     @Override
-    public ShowFileContentResponse showFileContent(ShowFileContentRequest request) throws GitException {
+    public ShowFileContentResponse showFileContent(String file, String version) throws GitException {
         String content;
         ObjectId revision;
         try {
-            revision = getRepository().resolve(request.getVersion());
+            revision = getRepository().resolve(version);
             try (RevWalk revWalk = new RevWalk(getRepository())) {
                 RevCommit revCommit = revWalk.parseCommit(revision);
                 RevTree tree = revCommit.getTree();
@@ -548,10 +552,9 @@ class JGitConnection implements GitConnection {
                 try (TreeWalk treeWalk = new TreeWalk(getRepository())) {
                     treeWalk.addTree(tree);
                     treeWalk.setRecursive(true);
-                    treeWalk.setFilter(PathFilter.create(request.getFile()));
+                    treeWalk.setFilter(PathFilter.create(file));
                     if (!treeWalk.next()) {
-                        throw new GitException("fatal: Path '" + request.getFile() + "' does not exist in '"
-                                               + request.getVersion() + "'" + lineSeparator());
+                        throw new GitException("fatal: Path '" + file + "' does not exist in '" + version + "'" + lineSeparator());
                     }
                     ObjectId objectId = treeWalk.getObjectId(0);
                     ObjectLoader loader = repository.open(objectId);
@@ -1141,10 +1144,10 @@ class JGitConnection implements GitConnection {
             if (name.equals(r)) {
                 config.unset(ConfigConstants.CONFIG_BRANCH_SECTION, branch, ConfigConstants.CONFIG_KEY_REMOTE);
                 config.unset(ConfigConstants.CONFIG_BRANCH_SECTION, branch, ConfigConstants.CONFIG_KEY_MERGE);
-                List<Branch> remoteBranches = branchList(newDto(BranchListRequest.class).withListMode("r"));
+                List<Branch> remoteBranches = branchList(LIST_REMOTE);
                 for (Branch remoteBranch : remoteBranches) {
                     if (remoteBranch.getDisplayName().startsWith(name)) {
-                        branchDelete(newDto(BranchDeleteRequest.class).withName(remoteBranch.getName()).withForce(true));
+                        branchDelete(remoteBranch.getName(), true);
                     }
                 }
             }
@@ -1476,9 +1479,9 @@ class JGitConnection implements GitConnection {
     @Override
     public void cloneWithSparseCheckout(String directory, String remoteUrl, String branch) throws GitException, UnauthorizedException {
         //TODO rework this code when jgit will support sparse-checkout. Tracked issue: https://bugs.eclipse.org/bugs/show_bug.cgi?id=383772
-        clone(newDto(CloneRequest.class).withRemoteUri(remoteUrl));
+        clone(CloneParams.create().withRemoteUri(remoteUrl));
         if (!"master".equals(branch)) {
-            checkout(newDto(CheckoutRequest.class).withName(branch));
+            checkout(CheckoutParams.create().withName(branch));
         }
         final String sourcePath = getWorkingDir().getPath();
         final String keepDirectoryPath = sourcePath + "/" + directory;
