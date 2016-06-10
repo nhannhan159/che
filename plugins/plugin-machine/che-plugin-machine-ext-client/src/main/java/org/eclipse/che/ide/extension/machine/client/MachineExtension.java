@@ -49,6 +49,7 @@ import org.eclipse.che.ide.extension.machine.client.outputspanel.OutputsContaine
 import org.eclipse.che.ide.extension.machine.client.perspective.OperationsPerspective;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelPresenter;
 import org.eclipse.che.ide.extension.machine.client.processes.NewTerminalAction;
+import org.eclipse.che.ide.extension.machine.client.processes.consolescontainer.ConsolesContainerPresenter;
 import org.eclipse.che.ide.extension.machine.client.targets.EditTargetsAction;
 import org.eclipse.che.ide.ui.toolbar.ToolbarPresenter;
 import org.eclipse.che.ide.util.input.KeyCodeMap;
@@ -84,6 +85,7 @@ public class MachineExtension {
                             final EventBus eventBus,
                             final WorkspaceAgent workspaceAgent,
                             final AppContext   appContext,
+                            final ConsolesContainerPresenter consolesContainerPresenter,
                             final ConsolesPanelPresenter consolesPanelPresenter,
                             final Provider<ServerPortProvider> machinePortProvider,
                             final OutputsContainerPresenter outputsContainerPresenter,
@@ -105,12 +107,12 @@ public class MachineExtension {
                 /* Add Outputs and Consoles to Operation perspective */
                 perspectiveManager.setPerspectiveId(OperationsPerspective.OPERATIONS_PERSPECTIVE_ID);
                 workspaceAgent.openPart(outputsContainerPresenter, PartStackType.INFORMATION);
-                workspaceAgent.openPart(consolesPanelPresenter, PartStackType.INFORMATION);
+                workspaceAgent.openPart(consolesContainerPresenter, PartStackType.INFORMATION);
 
                 /* Add Outputs and Consoles to Project perspective */
                 perspectiveManager.setPerspectiveId(PROJECT_PERSPECTIVE_ID);
                 workspaceAgent.openPart(outputsContainerPresenter, PartStackType.INFORMATION);
-                workspaceAgent.openPart(consolesPanelPresenter, PartStackType.INFORMATION);
+                workspaceAgent.openPart(consolesContainerPresenter, PartStackType.INFORMATION);
 
                 if (appContext.getFactory() == null) {
                     consolesPanelPresenter.newTerminal();

@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.che.ide.extension.machine.client.processes;
+package org.eclipse.che.ide.extension.machine.client.terminals;
 
 import elemental.events.KeyboardEvent;
 import elemental.events.MouseEvent;
@@ -33,14 +33,18 @@ import com.google.inject.Singleton;
 
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.ide.api.parts.PartStackUIResources;
-import org.eclipse.che.ide.api.parts.base.BaseView;
 import org.eclipse.che.ide.api.theme.Style;
 import org.eclipse.che.ide.extension.machine.client.MachineResources;
+import org.eclipse.che.ide.extension.machine.client.processes.AddTerminalClickHandler;
+import org.eclipse.che.ide.extension.machine.client.processes.PreviewSshClickHandler;
+import org.eclipse.che.ide.extension.machine.client.processes.ProcessDataAdapter;
+import org.eclipse.che.ide.extension.machine.client.processes.ProcessTreeNode;
+import org.eclipse.che.ide.extension.machine.client.processes.ProcessTreeRenderer;
+import org.eclipse.che.ide.extension.machine.client.processes.StopProcessHandler;
 import org.eclipse.che.ide.ui.tree.SelectionModel;
 import org.eclipse.che.ide.ui.tree.Tree;
 import org.eclipse.che.ide.ui.tree.TreeNodeElement;
 import org.eclipse.che.ide.util.input.SignalEvent;
-import org.eclipse.che.ide.util.loging.Log;
 
 import javax.validation.constraints.NotNull;
 import java.util.HashMap;
@@ -48,15 +52,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Implementation of {@link ConsolesPanelView}.
+ * Implementation of {@link org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelView}.
  *
  * @author Anna Shumilova
  * @author Roman Nikitenko
  */
+@Singleton
+public class TerminalsPanelViewImpl extends Composite implements TerminalsPanelView, RequiresResize {
 
-public class ConsolesPanelViewImpl extends Composite implements ConsolesPanelView, RequiresResize {
-
-    interface ProcessesViewImplUiBinder extends UiBinder<Widget, ConsolesPanelViewImpl> {
+    interface ProcessesViewImplUiBinder extends UiBinder<Widget, TerminalsPanelViewImpl> {
     }
 
     @UiField(provided = true)
@@ -83,49 +87,21 @@ public class ConsolesPanelViewImpl extends Composite implements ConsolesPanelVie
     private String activeProcessId;
 
     @Inject
-    public ConsolesPanelViewImpl(org.eclipse.che.ide.Resources resources,
-                                 MachineResources machineResources,
-                                 PartStackUIResources partStackUIResources,
-                                 ProcessesViewImplUiBinder uiBinder,
-                                 ProcessTreeRenderer renderer,
-                                 ProcessDataAdapter adapter) {
+    public TerminalsPanelViewImpl(org.eclipse.che.ide.Resources resources,
+                                  MachineResources machineResources,
+                                  PartStackUIResources partStackUIResources,
+                                  ProcessesViewImplUiBinder uiBinder,
+                                  ProcessTreeRenderer renderer,
+                                  ProcessDataAdapter adapter) {
         this.machineResources = machineResources;
         this.processWidgets = new HashMap<>();
         processTreeNodes = new LinkedHashMap<>();
         splitLayoutPanel = new SplitLayoutPanel(1);
-        Log.error(getClass(), "=== ConsolesPanelViewImpl constructor ");
 
         renderer.setAddTerminalClickHandler(new AddTerminalClickHandler() {
             @Override
             public void onAddTerminalClick(@NotNull String machineId) {
                 delegate.onAddTerminal(machineId);
-            }
-        });
-
-        renderer.setPreviewSshClickHandler(new PreviewSshClickHandler() {
-            @Override
-            public void onPreviewSshClick(@NotNull String machineId) {
-                delegate.onPreviewSsh(machineId);
-            }
-        });
-
-        renderer.setStopProcessHandler(new StopProcessHandler() {
-            @Override
-            public void onStopProcessClick(@NotNull ProcessTreeNode node) {
-                delegate.onStopCommandProcess(node);
-            }
-
-            @Override
-            public void onCloseProcessOutputClick(@NotNull ProcessTreeNode node) {
-                ProcessTreeNode.ProcessNodeType type = node.getType();
-                switch (type) {
-                    case COMMAND_NODE:
-                        delegate.onCloseCommandOutputClick(node);
-                        break;
-                    case TERMINAL_NODE:
-                        delegate.onCloseTerminal(node);
-                        break;
-                }
             }
         });
 
@@ -198,7 +174,7 @@ public class ConsolesPanelViewImpl extends Composite implements ConsolesPanelVie
         for (int i = 0; i < nodes.getLength(); i++) {
             Node node = nodes.getItem(i);
             if (node.hasChildNodes()) {
-                com.google.gwt.dom.client.Element el = node.getFirstChild().cast();
+                Element el = node.getFirstChild().cast();
                 if ("gwt-SplitLayoutPanel-HDragger".equals(el.getClassName())) {
                     tuneSplitter(el);
                     return;
@@ -335,19 +311,6 @@ public class ConsolesPanelViewImpl extends Composite implements ConsolesPanelVie
     }
 
     @Override
-    public void markProcessHasOutput(String processId) {
-        if (processId.equals(activeProcessId)) {
-            return;
-        }
-
-        ProcessTreeNode treeNode = processTreeNodes.get(processId);
-        if (treeNode != null) {
-            treeNode.setHasUnreadContent(true);
-            treeNode.getTreeNodeElement().getClassList().add(machineResources.getCss().badgeVisible());
-        }
-    }
-
-    @Override
     public void clear() {
         for (IsWidget widget : processWidgets.values()) {
             outputPanel.remove(widget);
@@ -380,20 +343,6 @@ public class ConsolesPanelViewImpl extends Composite implements ConsolesPanelVie
     @Nullable
     public ProcessTreeNode getNodeById(@NotNull String nodeId) {
         return processTreeNodes.get(nodeId);
-    }
-
-    @Override
-    public void setStopButtonVisibility(String nodeId, boolean visible) {
-        ProcessTreeNode processTreeNode = processTreeNodes.get(nodeId);
-        if (processTreeNode == null) {
-            return;
-        }
-
-        if (visible) {
-            processTreeNode.getTreeNodeElement().getClassList().remove(machineResources.getCss().hideStopButton());
-        } else {
-            processTreeNode.getTreeNodeElement().getClassList().add(machineResources.getCss().hideStopButton());
-        }
     }
 
     @Override

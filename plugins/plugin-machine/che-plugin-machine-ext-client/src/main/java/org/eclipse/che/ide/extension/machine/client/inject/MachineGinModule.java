@@ -58,6 +58,8 @@ import org.eclipse.che.ide.extension.machine.client.perspective.widgets.tab.head
 import org.eclipse.che.ide.extension.machine.client.perspective.widgets.tab.header.TabHeaderImpl;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelView;
 import org.eclipse.che.ide.extension.machine.client.processes.ConsolesPanelViewImpl;
+import org.eclipse.che.ide.extension.machine.client.processes.consolescontainer.ConsolesContainerView;
+import org.eclipse.che.ide.extension.machine.client.processes.consolescontainer.ConsolesContainerViewImpl;
 import org.eclipse.che.ide.extension.machine.client.targets.BaseTarget;
 import org.eclipse.che.ide.extension.machine.client.targets.CategoryPage;
 import org.eclipse.che.ide.extension.machine.client.targets.Target;
@@ -72,6 +74,8 @@ import org.eclipse.che.ide.extension.machine.client.targets.categories.docker.Do
 import org.eclipse.che.ide.extension.machine.client.targets.categories.ssh.SshCategoryPresenter;
 import org.eclipse.che.ide.extension.machine.client.targets.categories.ssh.SshView;
 import org.eclipse.che.ide.extension.machine.client.targets.categories.ssh.SshViewImpl;
+import org.eclipse.che.ide.extension.machine.client.terminals.TerminalsPanelView;
+import org.eclipse.che.ide.extension.machine.client.terminals.TerminalsPanelViewImpl;
 import org.eclipse.che.ide.ui.toolbar.ToolbarPresenter;
 
 import static org.eclipse.che.ide.extension.machine.client.perspective.OperationsPerspective.OPERATIONS_PERSPECTIVE_ID;
@@ -103,7 +107,9 @@ public class MachineGinModule extends AbstractGinModule {
                         .build(CommandConsoleFactory.class));
 
         bind(OutputsContainerView.class).to(OutputsContainerViewImpl.class).in(Singleton.class);
-        bind(ConsolesPanelView.class).to(ConsolesPanelViewImpl.class).in(Singleton.class);
+        bind(ConsolesPanelView.class).to(ConsolesPanelViewImpl.class);
+        bind(ConsolesContainerView.class).to(ConsolesContainerViewImpl.class).in(Singleton.class);
+        bind(TerminalsPanelView.class).to(TerminalsPanelViewImpl.class).in(Singleton.class);
 
         bind(EditCommandsView.class).to(EditCommandsViewImpl.class).in(Singleton.class);
 
