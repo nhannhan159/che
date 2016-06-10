@@ -21,6 +21,7 @@ import org.eclipse.che.ide.api.machine.MachineManager;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
 import org.eclipse.che.api.promises.client.PromiseError;
+import org.eclipse.che.ide.api.parts.PerspectiveManager;
 import org.eclipse.che.ide.api.workspace.WorkspaceServiceClient;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceDto;
 import org.eclipse.che.ide.CoreLocalizationConstant;
@@ -72,7 +73,8 @@ public class DefaultWorkspaceComponent extends WorkspaceComponent implements Com
                                      PreferencesManager preferencesManager,
                                      DtoFactory dtoFactory,
                                      InitialLoadingInfo initialLoadingInfo,
-                                     WorkspaceSnapshotCreator snapshotCreator) {
+                                     WorkspaceSnapshotCreator snapshotCreator,
+                                     PerspectiveManager perspectiveManager) {
         super(workspaceServiceClient,
               createWorkspacePresenter,
               startWorkspacePresenter,
@@ -89,7 +91,8 @@ public class DefaultWorkspaceComponent extends WorkspaceComponent implements Com
               preferencesManager,
               dtoFactory,
               initialLoadingInfo,
-              snapshotCreator);
+              snapshotCreator,
+              perspectiveManager);
     }
 
     /** {@inheritDoc} */

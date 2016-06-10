@@ -12,10 +12,8 @@ package org.eclipse.che.api.workspace.server;
 
 import org.eclipse.che.api.core.BadRequestException;
 import org.eclipse.che.api.core.model.machine.Command;
-import org.eclipse.che.api.core.model.workspace.Environment;
 import org.eclipse.che.api.core.model.workspace.Workspace;
 import org.eclipse.che.api.core.model.workspace.WorkspaceConfig;
-import org.eclipse.che.api.workspace.server.env.impl.che.CheEnvironmentEngine;
 import org.eclipse.che.api.workspace.server.env.spi.EnvironmentValidator;
 
 import javax.inject.Inject;
@@ -61,24 +59,24 @@ public class DefaultWorkspaceValidator implements WorkspaceValidator {
 
         //environments
         checkArgument(!isNullOrEmpty(config.getDefaultEnv()), "Workspace default environment name required");
-        checkArgument(config.getEnvironments()
-                            .stream()
-                            .anyMatch(env -> config.getDefaultEnv().equals(env.getName())),
-                      "Workspace default environment configuration required");
+//        checkArgument(config.getEnvironments()
+//                            .stream()
+//                            .anyMatch(env -> config.getDefaultEnv().equals(env.getName())),
+//                      "Workspace default environment configuration required");
 
-        for (Environment environment : config.getEnvironments()) {
-            String envType = environment.getType();
-            if (envType == null) {
-                envType = CheEnvironmentEngine.ENVIRONMENT_TYPE;
-            }
-            EnvironmentValidator environmentValidator = envValidators.get(envType);
-            if (environmentValidator == null) {
-                throw new BadRequestException("Environment with type " +
-                                              envType +
-                                              " can't be validated. No validation rules found.");
-            }
-            environmentValidator.validate(environment);
-        }
+//        for (Environment environment : config.getEnvironments()) {
+//            String envType = environment.getType();
+//            if (envType == null) {
+//                envType = CheEnvironmentEngine.ENVIRONMENT_TYPE;
+//            }
+//            EnvironmentValidator environmentValidator = envValidators.get(envType);
+//            if (environmentValidator == null) {
+//                throw new BadRequestException("Environment with type " +
+//                                              envType +
+//                                              " can't be validated. No validation rules found.");
+//            }
+//            environmentValidator.validate(environment);
+//        }
 
         //commands
         for (Command command : config.getCommands()) {

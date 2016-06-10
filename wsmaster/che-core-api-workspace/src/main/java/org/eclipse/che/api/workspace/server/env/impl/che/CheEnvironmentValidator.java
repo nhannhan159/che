@@ -11,18 +11,36 @@
 package org.eclipse.che.api.workspace.server.env.impl.che;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 
 import org.eclipse.che.api.core.BadRequestException;
 import org.eclipse.che.api.core.model.machine.MachineConfig;
 import org.eclipse.che.api.core.model.machine.ServerConf;
 import org.eclipse.che.api.core.model.workspace.Environment;
+import org.eclipse.che.api.core.model.workspace.EnvironmentRecipe;
 import org.eclipse.che.api.machine.server.MachineInstanceProviders;
-import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
+import org.eclipse.che.api.machine.server.exception.MachineException;
+import org.eclipse.che.api.machine.server.model.impl.LimitsImpl;
+import org.eclipse.che.api.machine.server.model.impl.MachineConfigImpl;
+import org.eclipse.che.api.machine.server.model.impl.MachineSourceImpl;
+import org.eclipse.che.api.workspace.server.env.impl.che.opencompose.impl.EnvironmentRecipeContentImpl;
 import org.eclipse.che.api.workspace.server.env.spi.EnvironmentValidator;
-import org.eclipse.che.dto.server.DtoFactory;
+import org.eclipse.che.commons.env.EnvironmentContext;
+import org.eclipse.che.commons.lang.IoUtil;
+import org.slf4j.Logger;
 
 import javax.inject.Inject;
+import javax.inject.Named;
+import javax.ws.rs.core.UriBuilder;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -30,31 +48,40 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * author Alexander Garagatyi
  */
 public class CheEnvironmentValidator implements EnvironmentValidator {
+    private static final Logger LOG  = getLogger(CheEnvironmentValidator.class);
+    private static final Gson   GSON = new GsonBuilder().disableHtmlEscaping()
+                                                        .create();
+
     private static final Pattern SERVER_PORT     = Pattern.compile("[1-9]+[0-9]*/(?:tcp|udp)");
     private static final Pattern SERVER_PROTOCOL = Pattern.compile("[a-z][a-z0-9-+.]*");
 
     private final MachineInstanceProviders machineInstanceProviders;
+    private final URI                      apiEndpoint;
 
     @Inject
-    public CheEnvironmentValidator(MachineInstanceProviders machineInstanceProviders) {
+    public CheEnvironmentValidator(MachineInstanceProviders machineInstanceProviders,
+                                   @Named("api.endpoint") URI apiEndpoint) {
         this.machineInstanceProviders = machineInstanceProviders;
+        this.apiEndpoint = apiEndpoint;
     }
 
     public String getType() {
         return CheEnvironmentEngine.ENVIRONMENT_TYPE;
     }
+
     // todo validate depends on in the same way as machine name
     // todo validate that env contains machine with name equal to dependency
     // todo use strategy to check if order is valid
     @Override
     public void validate(Environment env) throws BadRequestException {
-        final String envName = env.getName();
-        checkArgument(!isNullOrEmpty(envName), "Environment name should be neither null nor empty");
+//        final String envName = env.getName();
+//        checkArgument(!isNullOrEmpty(envName), "Environment name should be neither null nor empty");
 
         List<? extends MachineConfig> machines;
         try {
@@ -64,46 +91,73 @@ public class CheEnvironmentValidator implements EnvironmentValidator {
         }
 
         //machine configs
-        checkArgument(!machines.isEmpty(), "Environment '%s' should contain at least 1 machine", envName);
+        checkArgument(!machines.isEmpty(), "Environment should contain at least 1 machine");
 
         final long devCount = machines.stream()
                                       .filter(MachineConfig::isDev)
                                       .count();
         checkArgument(devCount == 1,
-                      "Environment should contain exactly 1 dev machine, but '%s' contains '%d'",
-                      envName,
+                      "Environment should contain exactly 1 dev machine, but contains '%d'",
                       devCount);
         for (MachineConfig machineCfg : machines) {
-            validateMachine(machineCfg, envName);
+            validateMachine(machineCfg);
         }
     }
 
     public List<MachineConfig> parse(Environment env) throws IllegalArgumentException {
-        List<? extends MachineConfig> machines;
-        if (env.getConfig() != null) {
-            // parse new format
-            try {
-                machines = DtoFactory.getInstance().createListDtoFromJson(env.getConfig(), MachineConfigDto.class);
-            } catch (JsonSyntaxException e) {
-                throw new IllegalArgumentException("Parsing of environment configuration failed. " + e.getLocalizedMessage());
-            }
-        } else {
-            // old format
-            machines = env.getMachineConfigs();
+        if (!"application/json".equals(env.getRecipe().getContentType())) {
+            throw new IllegalArgumentException("Environment recipe content type is unsupported. Supported values are: application/json");
         }
-        return machines.stream().collect(Collectors.toList());
+        String recipeContent;
+        try {
+            recipeContent = getContentOfRecipe(env.getRecipe());
+        } catch (MachineException e) {
+            throw new IllegalArgumentException(e.getLocalizedMessage(), e);
+        }
+        EnvironmentRecipeContentImpl environmentRecipeContent;
+        try {
+            environmentRecipeContent = GSON.fromJson(recipeContent, EnvironmentRecipeContentImpl.class);
+        } catch (JsonSyntaxException e) {
+            throw new IllegalArgumentException("Parsing of environment configuration failed. " + e.getLocalizedMessage());
+        }
+        List<MachineConfigImpl> machineConfigs =
+                environmentRecipeContent.getServices()
+                                        .entrySet()
+                                        .stream()
+                                        .map(entry -> MachineConfigImpl.builder()
+                                                                       .setCommand(entry.getValue().getCommand())
+                                                                       .setContainerName(entry.getValue().getContainerName())
+                                                                       .setDependsOn(entry.getValue().getDependsOn())
+                                                                       .setDev("true".equals(MoreObjects.firstNonNull(entry.getValue().getLabels(),
+                                                                                                                      Collections.emptyMap()).get("dev")))
+                                                                       .setEntrypoint(entry.getValue().getEntrypoint())
+                                                                       .setEnvVariables(entry.getValue().getEnvironment())
+                                                                       .setExpose(entry.getValue().getExpose())
+                                                                       .setLabels(entry.getValue().getLabels())
+                                                                       .setLimits(new LimitsImpl(entry.getValue().getMemLimit() != null ? entry.getValue().getMemLimit() : 0))
+                                                                       .setMachineLinks(entry.getValue().getLinks())
+                                                                       .setName(entry.getKey())
+                                                                       .setPorts(entry.getValue().getPorts())
+//                                                                       .setServers() todo
+                                                                       .setSource(entry.getValue().getImage() != null ?
+                                                                                  new MachineSourceImpl("dockerfile").setLocation(entry.getValue().getBuild() != null ? entry.getValue().getBuild().getDockerfile() : null) :
+                                                                                  new MachineSourceImpl("image").setLocation(entry.getValue().getImage()))
+                                                                       .setType("docker")
+                                                                       .build()
+                                        )
+                                        .collect(Collectors.toList());
+        return machineConfigs.stream().collect(Collectors.toList());
     }
 
-    private void validateMachine(MachineConfig machineCfg, String envName) throws BadRequestException {
-        checkArgument(!isNullOrEmpty(machineCfg.getName()), "Environment %s contains machine with null or empty name", envName);
-        checkNotNull(machineCfg.getSource(), "Environment " + envName + " contains machine without source");
+    private void validateMachine(MachineConfig machineCfg) throws BadRequestException {
+        checkArgument(!isNullOrEmpty(machineCfg.getName()), "Environment contains machine with null or empty name");
+        checkNotNull(machineCfg.getSource(), "Environment contains machine without source");
         checkArgument(!(machineCfg.getSource().getContent() == null && machineCfg.getSource().getLocation() == null),
-                      "Environment " + envName + " contains machine with source but this source doesn't define a location or content");
+                      "Environment contains machine with source but this source doesn't define a location or content");
         checkArgument(machineInstanceProviders.hasProvider(machineCfg.getType()),
-                      "Type %s of machine %s in environment %s is not supported. Supported values: %s.",
+                      "Type %s of machine %s is not supported. Supported values: %s.",
                       machineCfg.getType(),
                       machineCfg.getName(),
-                      envName,
                       Joiner.on(", ").join(machineInstanceProviders.getProviderTypes()));
 
         for (ServerConf serverConf : machineCfg.getServers()) {
@@ -152,6 +206,43 @@ public class CheEnvironmentValidator implements EnvironmentValidator {
             throws BadRequestException {
         if (!expression) {
             throw new BadRequestException(format(errorMessageTemplate, errorMessageParams));
+        }
+    }
+
+    private String getContentOfRecipe(EnvironmentRecipe environmentRecipe) throws MachineException {
+        if (environmentRecipe.getContent() != null) {
+            return environmentRecipe.getContent();
+        } else {
+            return getRecipe(environmentRecipe.getLocation());
+        }
+    }
+
+    private String getRecipe(String location) throws MachineException {
+        URL recipeUrl;
+        File file = null;
+        try {
+            UriBuilder targetUriBuilder = UriBuilder.fromUri(location);
+            // add user token to be able to download user's private recipe
+            final String apiEndPointHost = apiEndpoint.getHost();
+            final String host = targetUriBuilder.build().getHost();
+            if (apiEndPointHost.equals(host)) {
+                if (EnvironmentContext.getCurrent().getSubject() != null
+                    && EnvironmentContext.getCurrent().getSubject().getToken() != null) {
+                    targetUriBuilder.queryParam("token", EnvironmentContext.getCurrent().getSubject().getToken());
+                }
+            }
+            recipeUrl = targetUriBuilder.build().toURL();
+            file = IoUtil.downloadFileWithRedirect(null, "recipe", null, recipeUrl);
+
+            return IoUtil.readAndCloseQuietly(new FileInputStream(file));
+        } catch (IOException | IllegalArgumentException e) {
+            throw new MachineException(format("Recipe downloading failed. Recipe url %s. Error: %s",
+                                              location,
+                                              e.getLocalizedMessage()));
+        } finally {
+            if (file != null && !file.delete()) {
+                LOG.error(String.format("Removal of recipe file %s failed.", file.getAbsolutePath()));
+            }
         }
     }
 }

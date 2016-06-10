@@ -10,21 +10,16 @@
  *******************************************************************************/
 package org.eclipse.che.api.core.model.workspace;
 
-import org.eclipse.che.api.core.model.machine.MachineConfig2;
-
-import java.util.Map;
-
 /**
- * Defines environment for machines network.
- *
- * @author gazarenkov
+ * @author Alexander Garagatyi
  */
-public interface Environment {
-    /**
-     * Returns the recipe (the main script) to define this environment (compose, kubernetes pod).
-     * Type of this recipe defines engine for composing machines network runtime
-     */
-    EnvironmentRecipe getRecipe();
+public interface EnvironmentRecipe {
 
-    Map<String, ? extends MachineConfig2> getMachines();
+    String getType();
+
+    String getContentType();
+
+    String getContent();
+
+    String getLocation();
 }
